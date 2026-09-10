@@ -211,4 +211,9 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ content: `🎉 ¡Compra exitosa! Se creó el canal privado <#${ch.id}> para coordinar la entrega de tu premio.`, ephemeral: true });
 });
 
-client.login('MTU0NzA0OTg4MTc0OTk0NjQwOA.Gde6N2.l-URvU_lUYcZAcnSe1YQ-tzd0RWG6zaNB9-Rp4');
+client.login(process.env.TOKEN);
+const http = require('http');
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Bot en linea 24/7');
+}).listen(process.env.PORT || 3000);
