@@ -1,0 +1,12 @@
+{
+  "name": "novabet-bot2",
+  "version": "1.0.0",
+  "description": "Bot de Tienda NovaBet",
+  "main": "bot2.js",
+  "scripts": {
+    "start": "node bot2.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1"
+  }
+}
