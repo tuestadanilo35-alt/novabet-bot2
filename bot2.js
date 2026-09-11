@@ -9,7 +9,9 @@ const {
     PermissionsBitField,
     ChannelType
 } = require('discord.js');
-const fs = require('fs');
+const mongoose = require('mongoose');
+const http = require('http');
+const User = require('./User');
 
 const client = new Client({
     intents: [
@@ -20,9 +22,21 @@ const client = new Client({
     ]
 });
 
-const STATS_FILE = './stats.json';
 const ROLES_STAFF = ['ADMINS | NOVA BET', 'OWNERS | NOVA BET', 'ADM | FILA'];
 const CATEGORIA_TICKETS_ID = 'AQUÍ_ID_CATEGORIA_TIENDA';
+
+// Conexión a MongoDB Atlas
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log('✅ Base de datos MongoDB conectada en Bot 2.'))
+    .catch(err => console.error('❌ Error al conectar MongoDB:', err));
+
+async function obtenerOIniciarUsuario(userId) {
+    let usuario = await User.findOne({ userId });
+    if (!usuario) {
+        usuario = await User.create({ userId });
+    }
+    return usuario;
+}
 
 // TIENDA 1: ROLES Y RANGOS
 const PRODUCTOS_TIENDA_1 = {
@@ -42,15 +56,6 @@ const PRODUCTOS_TIENDA_2 = {
     'key_1dia': { nombre: '🔑 Key de 1 Día', precio: 15000, tipo: 'ticket' },
     'key_1semana': { nombre: '🔑 Key de 1 Semana', precio: 25000, tipo: 'ticket' }
 };
-
-function cargarStats() {
-    if (!fs.existsSync(STATS_FILE)) return {};
-    return JSON.parse(fs.readFileSync(STATS_FILE, 'utf-8'));
-}
-
-function guardarStats(datos) {
-    fs.writeFileSync(STATS_FILE, JSON.stringify(datos, null, 4));
-}
 
 function esStaff(member) {
     return member.roles.cache.some(r => ROLES_STAFF.includes(r.name));
@@ -145,11 +150,8 @@ client.on('interactionCreate', async (interaction) => {
 
     if (!producto) return;
 
-    const db = cargarStats();
     const userId = interaction.user.id;
-    if (!db[userId]) db[userId] = { coins: 0, jugadas: 0, ganadas: 0, rachaActual: 0, rachaMaxima: 0, historial: [] };
-
-    const usuarioData = db[userId];
+    const usuarioData = await obtenerOIniciarUsuario(userId);
 
     if (usuarioData.coins < producto.precio) {
         return interaction.reply({ 
@@ -159,7 +161,7 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     usuarioData.coins -= producto.precio;
-    guardarStats(db);
+    await usuarioData.save();
 
     if (producto.tipo === 'rol') {
         const rol = interaction.guild.roles.cache.find(r => r.name === producto.roleName);
@@ -211,9 +213,9 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ content: `🎉 ¡Compra exitosa! Se creó el canal privado <#${ch.id}> para coordinar la entrega de tu premio.`, ephemeral: true });
 });
 
-client.login(process.env.TOKEN);
-const http = require('http');
 http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Bot en linea 24/7');
 }).listen(process.env.PORT || 3000);
+
+client.login(process.env.TOKEN);
